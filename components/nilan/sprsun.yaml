@@ -197,44 +197,7 @@ sensor:
       - multiply: 0.01
     accuracy_decimals: 1  
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Actual cap
-    id: actual_capasity
-    register_type: holding
-    address: 204
-    unit_of_measurement: "hz"
-    device_class: "frequency"
-    value_type: U_WORD
-    filters:
-      - multiply: 0.01
-    accuracy_decimals: 1  
-
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Actual speed
-    id: actual_speed
-    register_type: holding
-    address: 205
-    unit_of_measurement: "hz"
-    device_class: "frequency"
-    value_type: U_WORD
-    filters:
-      - multiply: 0.01
-    accuracy_decimals: 1    
-    
-
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Electronic expansion valve opening
-    id: eev_opening
-    register_type: holding
-    address: 207
-    value_type: U_WORD
-    filters:
-      - multiply: 0.01
-    accuracy_decimals: 1    
-    
+ 
 
 select:
   - platform: modbus_controller
