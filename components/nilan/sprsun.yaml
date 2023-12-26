@@ -165,7 +165,6 @@ sensor:
     register_type: holding
     address: 197
     unit_of_measurement: "%"
-    #device_class: "pressure"
     value_type: U_WORD
     filters:
       - multiply: 0.01
@@ -178,7 +177,6 @@ sensor:
     register_type: holding
     address: 198
     unit_of_measurement: "%"
-    #device_class: "pressure"
     value_type: U_WORD
     filters:
       - multiply: 0.01
@@ -191,7 +189,6 @@ sensor:
     register_type: holding
     address: 203
     unit_of_measurement: "hz"
-    device_class: "frequency"
     value_type: U_WORD
     filters:
       - multiply: 0.01
@@ -204,7 +201,6 @@ sensor:
     register_type: holding
     address: 204
     unit_of_measurement: "hz"
-    device_class: "frequency"
     value_type: U_WORD
     filters:
       - multiply: 0.01
@@ -217,7 +213,6 @@ sensor:
     register_type: holding
     address: 205
     unit_of_measurement: "hz"
-    device_class: "frequency"
     value_type: U_WORD
     filters:
       - multiply: 0.01
