@@ -223,18 +223,18 @@ climate:
 #########################
 #### INPUT REGISTERS ####
 #########################
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: "Flow Switch"
-    id: sprsun_flow_switch
-    register_type: read
-    address: 1
+   - platform: modbus_controller
+     modbus_controller_id: sprsun_pc
+     name: "Flow Switch"
+     id: sprsun_flow_switch
+     register_type: read
+     address: 1
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: "Water Pump"
-    id: sprsun_main_waterpump
-    register_type: read
-    address: 8
+   - platform: modbus_controller
+     modbus_controller_id: sprsun_pc
+     name: "Water Pump"
+     id: sprsun_main_waterpump
+     register_type: read
+     address: 8
 
   
