@@ -95,8 +95,8 @@ climate::ClimateTraits NilanClimate::traits() {
   });
 
   traits.set_supported_modes({
-    climate::ClimateMode::CLIMATE_MODE_HOTWATER,
     climate::ClimateMode::CLIMATE_MODE_HEAT,
+    climate::ClimateMode::CLIMATE_MODE_COOL,
     climate::ClimateMode::CLIMATE_MODE_HEAT_COOL
    });
 
