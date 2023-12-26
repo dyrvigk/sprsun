@@ -219,4 +219,22 @@ climate:
     fan_speed_sensor_id: sprsun_fan_mode_set
     mode_select_id: p06_unit_mode
     
+ binary_sensor:
+#########################
+#### INPUT REGISTERS ####
+#########################
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Flow Switch"
+    id: sprsun_flow_switch
+    register_type: read
+    address: 1
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Water Pump"
+    id: sprsun_main_waterpump
+    register_type: read
+    address: 8
+
   
