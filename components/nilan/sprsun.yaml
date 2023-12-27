@@ -238,8 +238,8 @@ sensor:
     
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
-    name: "Unit Status"
-    id: sprsun_unit_status
+    name: "Unit mode"
+    id: sprsun_unit_mode
     register_type: holding
     address: 215
     lambda: !lambda |-
