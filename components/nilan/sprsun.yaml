@@ -236,8 +236,34 @@ sensor:
       - multiply: 0.01
     accuracy_decimals: 1       
 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Current status of the unit"
+    id: sprsun_current status
+    register_type: holding
+    address: 215
+    filters:
+    - map:
+      - 0 -> Cooling
+      - 1 -> Heating
+      - 2 -> HotWater
 
-
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Protection"
+    id: sprsun_protection
+    register_type: holding
+    address: 210
+    filters:
+    - map:
+      - 0 -> No
+      - 1 -> No
+      - 2 -> LowSH
+      - 3 -> Lop
+      - 4 -> Mop
+      - 5 -> HITcond
+     
+      
 select:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
