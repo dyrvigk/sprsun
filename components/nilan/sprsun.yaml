@@ -248,37 +248,7 @@ sensor:
       "HotWater": 2
      
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: "Protection"
-    id: sprsun_protection_status
-    register_type: holding
-    address: 210
-    optionsmap:
-      "No": 0
-      "No": 1
-      "Low SH": 2
-      "Lop": 3
-      "Mop": 4
-      "HITcond": 5
-       
-select:
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Work Mode
-    #icon: "mdi:fan"
-    id: p06_unit_mode
-    address: 000
-    entity_category: config
-    value_type: U_WORD
-    optimistic: false
-    skip_updates: 6
-    optionsmap:
-      "Cooling": 0
-      "Heating": 1
-      "HotWater": 2
-      "HotWater + Cooling": 3
-      "HotWater + Heating": 4
+  
 
 
 
