@@ -236,6 +236,7 @@ sensor:
       - multiply: 0.01
     accuracy_decimals: 1       
 
+text_sensor:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: "Current status of the unit"
