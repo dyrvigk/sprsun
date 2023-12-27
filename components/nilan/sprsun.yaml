@@ -242,16 +242,11 @@ sensor:
     id: sprsun_unit_mode
     register_type: holding
     address: 215
-    lambda: !lambda |-
-      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
-      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
-      std::string mode_str;
-      switch (int_mode) {
-        case 0:  mode_str = "Cooling"; break;
-        case 1:  mode_str = "Heating"; break;
-        case 2:  mode_str = "Hot Water"; break;
-      }
-      return mode_str;
+    optionsmap:
+      "Cooling": 0
+      "Heating": 1
+      "HotWater": 2
+     
 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
@@ -259,20 +254,14 @@ sensor:
     id: sprsun_protection_status
     register_type: holding
     address: 210
-    lambda: !lambda |-
-      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
-      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
-      std::string mode_str;
-      switch (int_mode) {
-        case 0:  mode_str = "No"; break;
-        case 1:  mode_str = "No"; break;
-        case 2:  mode_str = "Low SH"; break;
-        case 3:  mode_str = "Lop"; break;
-        case 4:  mode_str = "Mop"; break;
-        case :  mode_str = "HITcond"; break;
-      }
-      return mode_str;    
-
+    optionsmap:
+      "No": 0
+      "No": 1
+      "Low SH": 2
+      "Lop": 3
+      "Mop": 4
+      "HITcond": 5
+       
 select:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
