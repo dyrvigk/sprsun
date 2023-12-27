@@ -236,16 +236,7 @@ sensor:
       - multiply: 0.01
     accuracy_decimals: 1       
     
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: "Unit mode"
-    id: sprsun_unit_mode
-    register_type: holding
-    address: 215
-    optionsmap:
-      "Cooling": 0
-      "Heating": 1
-      "HotWater": 2
+ 
      
 
   
