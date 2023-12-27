@@ -234,10 +234,46 @@ sensor:
     value_type: U_WORD
     filters:
       - multiply: 0.1
-    accuracy_decimals: 1       
+    accuracy_decimals: 1   
 
+text_sensor:    
 
-     
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Protection"
+    id: sprsun_protection
+    register_type: holding
+    address: 210
+    lambda: !lambda |-
+      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
+      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
+      std::string mode_str;
+      switch (int_mode) {
+        case 0: mode_str = "No"; break;
+        case 1: mode_str = "No"; break;
+        case 2: mode_str = "LowSH"; break;
+        case 3: mode_str = "Lop"; break;
+        case 4: mode_str = "Mop"; break;
+        case 5: mode_str = "HITcond"; break;
+      }
+      return mode_str;
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Current status of the unit"
+    id: sprsun_current_status
+    register_type: holding
+    address: 215
+    lambda: !lambda |-
+      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
+      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
+      std::string mode_str;
+      switch (int_mode) {
+        case 0: mode_str = "Cooling"; break;
+        case 1: mode_str = "Heating"; break;
+        case 2: mode_str = "HotWater"; break;
+      }
+      return mode_str;
       
 select:
   - platform: modbus_controller
