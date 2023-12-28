@@ -243,10 +243,11 @@ sensor:
     register_type: holding
     address: 387
     unit_of_measurement: "W"
+    device_class: "power"
     value_type: U_WORD
     filters:
-      - multiply: 0.1
-    accuracy_decimals: 1     
+      - lambda: return x * 1.0;
+    accuracy_decimals: 2
 
 text_sensor:    
   - name: "rtc_clock"
