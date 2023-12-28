@@ -241,12 +241,12 @@ text_sensor:
     platform: modbus_controller
     modbus_controller_id: sprsun_pc
     id: rtc_clock
-    internal: true
+    internal: false
     register_type: holding
     address: 185    ## address of the register inside the ModBUS slave device
     register_count: 2
     raw_encode: HEXBYTES
-    response_size: 4
+    response_size: 8
     
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
