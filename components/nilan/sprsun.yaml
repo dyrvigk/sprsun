@@ -258,7 +258,7 @@ text_sensor:
     register_type: holding
     address: 185    ## address of the register inside the ModBUS slave device
     register_count: 2
-    raw_encode: COMMA
+    raw_encode: NONE
     response_size: 4
     
   - platform: modbus_controller
