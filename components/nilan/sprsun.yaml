@@ -244,11 +244,12 @@ sensor:
     address: 387
     unit_of_measurement: "W"
     device_class: "power"
-    value_type: U_WORD
-    filters:
-      - lambda: return x * 1.0;
-    accuracy_decimals: 2
-
+    register_count: 2
+    response_size: 2
+    raw_encode: HEXBYTES
+    lambda: |-
+       return <std::string>;
+       
 text_sensor:    
   - name: "rtc_clock"
     platform: modbus_controller
