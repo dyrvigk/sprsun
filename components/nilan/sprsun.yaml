@@ -240,7 +240,7 @@ sensor:
     
        
 text_sensor:  
- - platform: modbus_controller
+  - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Power
     id: sprsun_power
