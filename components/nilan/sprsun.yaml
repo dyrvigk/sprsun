@@ -247,7 +247,7 @@ sensor:
     register_count: 2
     response_size: 2
     filters:
-      - lambda: return {};
+      - lambda: return <std::string>;
     accuracy_decimals: 2
        
 text_sensor:    
