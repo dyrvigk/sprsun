@@ -236,7 +236,11 @@ sensor:
       - multiply: 0.1
     accuracy_decimals: 1   
 
-  - platform: modbus_controller
+ 
+    
+       
+text_sensor:  
+ - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Power
     id: sprsun_power
@@ -248,8 +252,6 @@ sensor:
     raw_encode: HEXBYTES
     response_size: 2
     
-       
-text_sensor:    
   - name: "rtc_clock"
     platform: modbus_controller
     modbus_controller_id: sprsun_pc
