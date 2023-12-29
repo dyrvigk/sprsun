@@ -245,10 +245,9 @@ sensor:
     unit_of_measurement: "W"
     device_class: "power"
     register_count: 2
+    raw_encode: HEXBYTE
     response_size: 2
-    filters:
-      - lambda: return <std::string>;
-    accuracy_decimals: 2
+    
        
 text_sensor:    
   - name: "rtc_clock"
