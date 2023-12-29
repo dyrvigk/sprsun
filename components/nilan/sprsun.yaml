@@ -246,10 +246,9 @@ sensor:
     device_class: "power"
     register_count: 2
     response_size: 2
-    raw_encode: HEXBYTES
     filters:
       - lambda: return {};
-      
+    accuracy_decimals: 2
        
 text_sensor:    
   - name: "rtc_clock"
