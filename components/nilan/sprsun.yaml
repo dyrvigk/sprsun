@@ -245,7 +245,7 @@ sensor:
     unit_of_measurement: "W"
     device_class: "power"
     register_count: 2
-    raw_encode: HEXBYTE
+    raw_encode: HEXBYTES
     response_size: 2
     
        
