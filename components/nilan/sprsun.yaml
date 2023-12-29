@@ -247,7 +247,8 @@ sensor:
     register_count: 2
     response_size: 2
     raw_encode: HEXBYTES
-    lambda: return {};
+    filters:
+      - lambda: return {};
       
        
 text_sensor:    
