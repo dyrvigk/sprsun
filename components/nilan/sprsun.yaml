@@ -256,7 +256,18 @@ sensor:
     value_type: U_WORD
     filters:
       - multiply: 0.1
-    accuracy_decimals: 1     
+    accuracy_decimals: 1    
+
+   - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} Power Fase A Voltage
+    id: sprsun_fase_a_voltage
+    register_type: holding
+    address: 376
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    accuracy_decimals: 1        
        
 text_sensor:  
     
