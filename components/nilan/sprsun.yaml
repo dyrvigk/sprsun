@@ -236,19 +236,29 @@ sensor:
       - multiply: 0.1
     accuracy_decimals: 1   
 
- 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} Unit COP
+    id: sprsun_unit_cop
+    register_type: holding
+    address: 389
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    accuracy_decimals: 1   
     
-       
-text_sensor:  
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Power
-    id: sprsun_power
+    id: sprsun_bldc_power
     register_type: holding
-    address: 387
-    register_count: 2
-    raw_encode: HEXBYTES
-    response_size: 2
+    address: 333
+    value_type: U_WORD
+    filters:
+      - multiply: 0.1
+    accuracy_decimals: 1     
+       
+text_sensor:  
     
   - name: "rtc_clock"
     platform: modbus_controller
