@@ -344,14 +344,14 @@ text_sensor:
     lambda: |-
        std::string z = "";
        int idx = item->offset+1;
-       if ((data[idx] & 13) != 1) z += "Too many mem writings, ";
-       if ((data[idx] & 14) != 1) z += "Retain mem write error, ";
-       if ((data[idx] & 15) != 1) z += "Inlet probe error, ";
-       if ((data[idx] & 16) != 1) z += "Outlet probe error, ";
-       if ((data[idx] & 18) != 1) z += "Ambient probe error, ";
-       if ((data[idx] & 19) != 1) z += "Condenser coil temp, ";
-       if ((data[idx] & 20) != 1) z += "Water flow switch, ";
-       if ((data[idx] & 21) != 1) z += "Phase sequ.prot.alarm, ";
+       if ((data[idx] & 13) != 0) z += "Too many mem writings, ";
+       if ((data[idx] & 14) != 0) z += "Retain mem write error, ";
+       if ((data[idx] & 15) != 0) z += "Inlet probe error, ";
+       if ((data[idx] & 16) != 0) z += "Outlet probe error, ";
+       if ((data[idx] & 18) != 0) z += "Ambient probe error, ";
+       if ((data[idx] & 19) != 0) z += "Condenser coil temp, ";
+       if ((data[idx] & 20) != 0) z += "Water flow switch, ";
+       if ((data[idx] & 21) != 0) z += "Phase sequ.prot.alarm, ";
    
        if(z.length() > 0){
          z.pop_back();
