@@ -338,7 +338,7 @@ text_sensor:
     id: failure_symbol_1
     register_type: read
     address: 13
-    response_size: 8
+    response_size: 60
     raw_encode: NONE
     #bitmask: 0
     lambda: |-
@@ -348,11 +348,64 @@ text_sensor:
        if ((data[idx] & 14) != 0) z += "Retain mem write error, ";
        if ((data[idx] & 15) != 0) z += "Inlet probe error, ";
        if ((data[idx] & 16) != 0) z += "Outlet probe error, ";
-       if ((data[idx] & 18) != 0) z += "Ambient probe error, ";
-       if ((data[idx] & 19) != 0) z += "Condenser coil temp, ";
-       if ((data[idx] & 20) != 0) z += "Water flow switch, ";
-       if ((data[idx] & 21) != 0) z += "Phase sequ.prot.alarm, ";
-   
+       if ((data[idx] & 17) != 0) z += "Ambient probe error, ";
+       if ((data[idx] & 18) != 0) z += "Condenser coil temp, ";
+       if ((data[idx] & 19) != 0) z += "Water flow switch, ";
+       if ((data[idx] & 20) != 0) z += "Phase sequ.prot.alarm, ";
+       if ((data[idx] & 21) != 0) z += "Unit work hour warning, ";
+       if ((data[idx] & 22) != 0) z += "Pump work hour warning, ";
+       if ((data[idx] & 23) != 0) z += "Comp.work hour warning, ";
+       if ((data[idx] & 24) != 0) z += "Cond.fan work hourWarn, ";
+       if ((data[idx] & 25) != 0) z += "Low superheat - Vlv.A, ";
+       if ((data[idx] & 26) != 0) z += "Low superheat - Vlv.B, ";
+       if ((data[idx] & 27) != 0) z += "LOP - Vlv.A, ";
+       if ((data[idx] & 28) != 0) z += "LOP - Vlv.B, ";
+       if ((data[idx] & 29) != 0) z += "MOP - Vlv.A, ";
+       if ((data[idx] & 30) != 0) z += "MOP - Vlv.B, ";
+       if ((data[idx] & 31) != 0) z += "Motor error - Vlv.A, ";
+       if ((data[idx] & 32) != 0) z += "Motor error - Vlv.B, ";
+       if ((data[idx] & 33) != 0) z += "Low suct.temp. - Vlv.A, ";
+       if ((data[idx] & 34) != 0) z += "Low suct.temp. - Vlv.B, ";
+       if ((data[idx] & 35) != 0) z += "High condens.temp.EVD, ";
+       if ((data[idx] & 36) != 0) z += "Probe S1 error EVD, ";
+       if ((data[idx] & 37) != 0) z += "Probe S2 error EVD, ";
+       if ((data[idx] & 38) != 0) z += "Probe S3 error EVD, ";
+       if ((data[idx] & 39) != 0) z += "Probe S4 error EVD, ";
+       if ((data[idx] & 40) != 0) z += "Battery discharge EVD, ";
+       if ((data[idx] & 41) != 0) z += "EEPROM alarm EVD, ";
+       if ((data[idx] & 42) != 0) z += "Incomplete closing EVD, ";
+       if ((data[idx] & 43) != 0) z += "Emergency closing EVD, ";
+       if ((data[idx] & 44) != 0) z += "FW not compatible EVD, ";
+       if ((data[idx] & 45) != 0) z += "Config. error EVD, ";
+       if ((data[idx] & 46) != 0) z += "EVD Driver offline, ";
+       if ((data[idx] & 47) != 0) z += "BLDC-alarm:High startup DeltaP, ";
+       if ((data[idx] & 48) != 0) z += "BLDC-alarm:Compressor shut off, ";
+       if ((data[idx] & 49) != 0) z += "BLDC-alarm:Out of Envelope, ";
+       if ((data[idx] & 50) != 0) z += "BLDC-alarm:Starting fail wait, ";
+       if ((data[idx] & 51) != 0) z += "BLDC-alarm:Starting fail exceeded, ";
+       if ((data[idx] & 52) != 0) z += "BLDC-alarm:Low delta pressure, ";
+       if ((data[idx] & 53) != 0) z += "BLDC-alarm:High discarge gas temp, ";
+       if ((data[idx] & 54) != 0) z += "Envelope-alarm:High compressor ratio, ";
+       if ((data[idx] & 55) != 0) z += "Envelope-alarm:High discharge press., ";
+       if ((data[idx] & 56) != 0) z += "Envelope-alarm:High current, ";
+       if ((data[idx] & 57) != 0) z += "Envelope-alarm:High suction pressure, ";
+       if ((data[idx] & 58) != 0) z += "Envelope-alarm:Low compressor ratio, ";
+       if ((data[idx] & 59) != 0) z += "Envelope-alarm:Low pressure diff., ";
+       if ((data[idx] & 60) != 0) z += "Envelope-alarm:Low discharge pressure, ";
+       if ((data[idx] & 61) != 0) z += "Envelope-alarm:Low suction pressure, ";
+       if ((data[idx] & 62) != 0) z += "Envelope-alarm:High discharge temp., ";
+       if ((data[idx] & 63) != 0) z += "Power+ alarm:01-Overcurrent, ";
+       if ((data[idx] & 64) != 0) z += "Power+ alarm:02-Motor overload, ";
+       if ((data[idx] & 65) != 0) z += "Power+ alarm:03-DCbus overvoltage, ";
+       if ((data[idx] & 66) != 0) z += "Power+ alarm:04-DCbus undervoltage, ";
+       if ((data[idx] & 67) != 0) z += "Power+ alarm:05-Drive overtemp., ";
+       if ((data[idx] & 68) != 0) z += "Power+ alarm:06-Drive undertemp., ";
+       if ((data[idx] & 69) != 0) z += "Power+ alarm:07-Overcurrent HW, ";
+       if ((data[idx] & 70) != 0) z += "Power+ alarm:08-Motor overtemp., ";
+       if ((data[idx] & 71) != 0) z += "Power+ alarm:09-IGBT module error, ";
+       if ((data[idx] & 72) != 0) z += "Power+ alarm:10-CPU error, ";
+       if ((data[idx] & 73) != 0) z += "Power+ alarm:11-Parameter default, ";
+       
        if(z.length() > 0){
          z.pop_back();
        }
