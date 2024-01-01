@@ -350,7 +350,7 @@ text_sensor:
        if ((data[idx] & 16) != 0) z += "Outlet probe error, ";
        if ((data[idx] & 18) != 0) z += "Ambient probe error, ";
        if ((data[idx] & 19) != 0) z += "Condenser coil temp, ";
-       if ((data[idx] & 20) != 1) z += "Water flow switch, ";
+       if ((data[idx] & 20) != 0) z += "Water flow switch, ";
        if ((data[idx] & 21) != 0) z += "Phase sequ.prot.alarm, ";
    
        if(z.length() > 0){
