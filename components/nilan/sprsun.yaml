@@ -331,6 +331,32 @@ text_sensor:
         case 2: mode_str = "HotWater"; break;
       }
       return mode_str;
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} Failure symbol 1
+    id: failure_symbol_1
+    register_type: read
+    address: 13
+    response_size: 8
+    raw_encode: NONE
+    #bitmask: 0
+    lambda: |-
+       std::string z = "";
+       int idx = item->offset+1;
+       if ((data[idx] & 13) != 1) z += "Too many mem writings, ";
+       if ((data[idx] & 14) != 1) z += "Retain mem write error, ";
+       if ((data[idx] & 15) != 1) z += "Inlet probe error, ";
+       if ((data[idx] & 16) != 1) z += "Outlet probe error, ";
+       if ((data[idx] & 18) != 1) z += "Ambient probe error, ";
+       if ((data[idx] & 19) != 1) z += "Condenser coil temp, ";
+       if ((data[idx] & 20) != 1) z += "Water flow switch, ";
+       if ((data[idx] & 21) != 1) z += "Phase sequ.prot.alarm, ";
+   
+       if(z.length() > 0){
+         z.pop_back();
+       }
+       return {z};   
       
 select:
   - platform: modbus_controller
