@@ -3,6 +3,7 @@ external_components:
     refresh: 0s
 
 
+
 nilan:
 
 sensor:
@@ -295,6 +296,20 @@ sensor:
       - lambda: return x * 1.0;
     accuracy_decimals: 0
     skip_updates: 10
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} Display Version
+    id: display_version
+    register_type: holding
+    address: 0x002D
+    #unit_of_measurement: "Hz"
+    #device_class: "frequency"
+    value_type: U_WORD
+    filters:
+      - lambda: return x * 1.0;
+    accuracy_decimals: 0
+    skip_updates: 10  
     
 text_sensor:  
     
@@ -443,7 +458,27 @@ select:
       "HotWater + Cooling": 3
       "HotWater + Heating": 4
 
-  
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} F56 Model pompy ciepła
+    #icon: "mdi:fan"
+    id: f56_model_selection
+    address:  0x01BA
+    entity_category: config
+    value_type: U_WORD
+    optimistic: false
+    skip_updates: 10
+    optionsmap:
+      "A102508 - CGK025V3L-B 9.5 kW 220V": 1
+      "A202508 - CGK-025V3L-B 9.5 kW 380V": 2
+      "A103008 - CGK030V3L-B 12 kW 220V": 3
+      "A203008 - CGK-030V3L-B 12 kW 380V": 4
+      "A104008 - CGK040V3L-B 15 kW 220V": 5
+      "A204008 - CGK-040V3L-B 15 kW 380V": 6
+      "A105008 - CGK050V3L-B 20 kW 220V": 7
+      "A205008 - CGK-050V3L-B 20 kW 380V": 8
+      "A106008 - CGK060V3L-B 22 kW 220V": 9
+      "A206008 - CGK-060V3L-B 22 kW 380V": 10
 
 
 
