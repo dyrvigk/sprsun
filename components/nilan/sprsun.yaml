@@ -310,6 +310,20 @@ sensor:
       - lambda: return x * 1.0;
     accuracy_decimals: 0
     skip_updates: 10  
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} year
+    id: display_year
+    register_type: holding
+    address: 182
+    #unit_of_measurement: "Hz"
+    #device_class: "frequency"
+    value_type: U_WORD
+    filters:
+      - lambda: return x * 1.0;
+    accuracy_decimals: 0
+    skip_updates: 10     
     
 text_sensor:  
     
