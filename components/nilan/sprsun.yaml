@@ -316,7 +316,7 @@ sensor:
     name: ${friendly_name} year
     id: display_year
     register_type: holding
-    address: 182
+    address: 186
     #unit_of_measurement: "Hz"
     #device_class: "frequency"
     value_type: U_WORD
@@ -334,7 +334,7 @@ text_sensor:
     internal: false
     register_type: holding
     address: 185    ## address of the register inside the ModBUS slave device
-    register_count: 2
+    register_count: 1
     raw_encode: NONE
     response_size: 4
     
