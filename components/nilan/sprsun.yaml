@@ -354,6 +354,22 @@ text_sensor:
 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
+    name: "Flow Switch "
+    id: sprsun_flow_switch 
+    register_type: read
+    address: 001
+    lambda: !lambda |-
+      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
+      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
+      std::string mode_str;
+      switch (int_mode) {
+        case 0: mode_str = "Flow"; break;
+        case 1: mode_str = "No Flow"; break;
+      }
+      return mode_str;    
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
     name: ${friendly_name} Failure symbol 1
     id: failure_symbol_1
     register_type: read
