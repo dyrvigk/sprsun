@@ -359,10 +359,7 @@ text_sensor:
     register_type: read
     address: 001
     lambda: !lambda |-
-      uint16_t int_mode = (data[item->offset] << 8) + data[item->offset+1];
-      ESP_LOGD("main","Parsed operation mode int : %d", int_mode);
-      std::string mode_str;
-      switch (int_mode) {
+      if (id(sprsun_flow_switch).state) {
         case 0: mode_str = "Flow"; break;
         case 1: mode_str = "No Flow"; break;
       }
