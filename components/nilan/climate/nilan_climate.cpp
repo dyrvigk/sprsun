@@ -98,6 +98,7 @@ climate::ClimateTraits NilanClimate::traits() {
     climate::ClimateMode::CLIMATE_MODE_HEAT,
     climate::ClimateMode::CLIMATE_MODE_COOL,
     climate::ClimateMode::CLIMATE_MODE_HEAT_COOL
+    climate::ClimateMode::CLIMATE_MODE_HOTWATER
    });
 
   traits.set_supports_current_temperature(true);
