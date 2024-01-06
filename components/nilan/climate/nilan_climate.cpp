@@ -136,10 +136,10 @@ int NilanClimate::climatemode_to_nilanoperationmode(const climate::ClimateMode m
   int return_value;
 
   switch (mode) {
-    case climate::CLIMATE_MODE_OFF: return_value = 0; break;
-    case climate::CLIMATE_MODE_HEAT: return_value = 2; break;
-    case climate::CLIMATE_MODE_COOL: return_value = 1; break;
-    case climate::CLIMATE_MODE_HEAT_COOL: return_value = 3; break;
+    case climate::CLIMATE_MODE_COOL: return_value = 0; break;
+    case climate::CLIMATE_MODE_HEAT: return_value = 1; break;
+    case climate::CLIMATE_MODE_HOTWATER: return_value = 2; break;
+    case climate::CLIMATE_MODE_HEAT_COOL_HOTWATER: return_value = 3; break;
     default: return_value = 4; break;
   }
 
@@ -149,10 +149,10 @@ int NilanClimate::climatemode_to_nilanoperationmode(const climate::ClimateMode m
 void NilanClimate::nilanmodetext_to_climatemode(const size_t index)
 {
   switch(index) {
-    case 0: this->mode = climate::CLIMATE_MODE_OFF; break;
-    case 2: this->mode = climate::CLIMATE_MODE_HEAT; break;
-    case 1: this->mode = climate::CLIMATE_MODE_COOL; break;
-    default: this->mode = climate::CLIMATE_MODE_HEAT_COOL; break;
+    case 0: this->mode = climate::CLIMATE_MODE_COOL; break;
+    case 1: this->mode = climate::CLIMATE_MODE_HEAT; break;
+    case 2: this->mode = climate::CLIMATE_MODE_HOTWATER; break;
+    case 3: this->mode = climate::CLIMATE_MODE_HEAT_COOL_HOTWATER; break;
   }
 }
 
