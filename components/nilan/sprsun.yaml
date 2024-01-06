@@ -352,16 +352,7 @@ text_sensor:
       }
       return mode_str;
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: "Flow Switch "
-    id: sprsun_flow_switch 
-    register_type: read
-    address: 1
-    filters:
-    - map:
-      - low -> Flow
-      - high -> Off   
+ 
 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
