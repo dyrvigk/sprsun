@@ -357,11 +357,11 @@ text_sensor:
     name: "Flow Switch "
     id: sprsun_flow_switch 
     register_type: read
-    address: 001
+    address: 1
     filters:
     - map:
-      - 0 -> Flow
-      - 1 -> Off   
+      - low -> Flow
+      - high -> Off   
 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
