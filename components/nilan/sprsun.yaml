@@ -311,7 +311,15 @@ sensor:
     accuracy_decimals: 0
     skip_updates: 10  
 
- 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: "Flow Switch "
+    id: sprsun_flow_switch 
+    register_type: read
+    address: 001
+    optionsmap:
+      "Flow" : 0
+      "OFF" : 1     
     
 text_sensor:  
     
