@@ -511,6 +511,40 @@ number:
 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
+    name: ${friendly_name} heating_setpoint
+    address: 001
+    unit_of_measurement: "°C"
+    #icon: "mdi:fan-speed-1"
+    id: p04_heating_setpoint
+    value_type: U_WORD
+    min_value: 10
+    max_value: 55
+    lambda: "return x * 0.1;"
+    write_lambda: "return x / 0.1;"
+    step: 1
+    mode: slider
+    entity_category: config
+    skip_updates: 6
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    name: ${friendly_name} cooling_setpoint
+    address: 002
+    unit_of_measurement: "°C"
+    #icon: "mdi:fan-speed-1"
+    id: p04_cooling_setpoint
+    value_type: U_WORD
+    min_value: 10
+    max_value: 55
+    lambda: "return x * 0.1;"
+    write_lambda: "return x / 0.1;"
+    step: 1
+    mode: slider
+    entity_category: config
+    skip_updates: 6  
+
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
     name: ${friendly_name} Hot water hysteresis
     address: 004
     unit_of_measurement: "°C"
