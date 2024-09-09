@@ -418,13 +418,7 @@ text_sensor:
        return {z};
  
  
-climate:
-  - platform: nilan
-    name: Nilan
-    current_temp_sensor_id: hotwater_temp
-    target_temp_sensor_id: p04_hotwater_setpoint
-    fan_speed_sensor_id: sprsun_fan_mode_set
-    mode_select_id: p06_unit_mode
+
   
 time:
   - platform: sntp
@@ -7890,4 +7884,10 @@ number:
       mode: box
       entity_category: config
       skip_updates: 10
-
+ climate:
+    - platform: nilan
+      name: Nilan
+      current_temp_sensor_id: hotwater_temp
+      target_temp_sensor_id: p04_hotwater_setpoint
+      fan_speed_sensor_id: sprsun_fan_mode_set
+      mode_select_id: p06_unit_mode
