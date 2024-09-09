@@ -1,3 +1,13 @@
+external_components:
+  - source: github://dyrvigk/sprsun@main
+    refresh: 0s
+
+
+
+nilan:
+
+
+
 globals:
   - id: number_compressor_starts
     type: int
