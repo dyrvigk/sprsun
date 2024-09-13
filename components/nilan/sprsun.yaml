@@ -138,7 +138,7 @@ sensor:
     name: ${friendly_name} Suction Pressure
     id: suct_press
     register_type: holding
-    address: 194
+    address: 0x002F
     unit_of_measurement: "bar"
     device_class: "pressure"
     value_type: U_WORD
@@ -151,7 +151,7 @@ sensor:
     name: ${friendly_name} Discharge Pressure
     id: disch_press
     register_type: holding
-    address: 193
+    address: 0x0030
     unit_of_measurement: "bar"
     device_class: "pressure"
     value_type: U_WORD
@@ -164,7 +164,7 @@ sensor:
     name: ${friendly_name} Fan output
     id: fan_output
     register_type: holding
-    address: 197
+    address: 0x0031
     value_type: U_WORD
     filters:
       - multiply: 0.1
@@ -681,7 +681,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} hotwater_setpoint
-    address: 003
+    address: 0x00CA
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_hotwater_setpoint
@@ -698,7 +698,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} heating_setpoint
-    address: 001
+    address: 0x00CC
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_heating_setpoint
@@ -715,7 +715,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} cooling_setpoint
-    address: 002
+    address: 0x00CB
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_cooling_setpoint
@@ -732,7 +732,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Hot water hysteresis
-    address: 004
+    address: 0x00C8
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: hotwater_start_diff
