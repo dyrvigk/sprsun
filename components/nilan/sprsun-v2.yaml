@@ -655,46 +655,7 @@ sensor:
       return id(delta).state * id(flow_rate).state * 4.1899 * 975 / 3600;
    #przepływ: 1100-1440 
  
-  - platform: template
-    name: ${friendly_name} Współczynnik COP
-    id: cop
-    #unit_of_measurement: "W"
-    #device_class: "power"
-    #icon: mdi:power
-    accuracy_decimals: 2
-    update_interval: 5s  
-    lambda: |-
-      return id(moc_cieplna).state / id(pc_moc).state;
- 
-  - platform: template
-    name: ${friendly_name} Współczynnik COP dla CO
-    id: cop_co
-    #unit_of_measurement: "W"
-    #device_class: "power"
-    #icon: mdi:power
-    accuracy_decimals: 2
-    update_interval: 5s  
-    lambda: |-
-      if ((id(heating_demand).state) and (id(pc_moc).state >= 200.00)) {
-        return id(moc_cieplna).state / id(pc_moc).state;
-      } else {
-        return 0.00;
-      }
- 
-  - platform: template
-    name: ${friendly_name} Współczynnik COP dla CWU
-    id: cop_cwu
-    #unit_of_measurement: "W"
-    #device_class: "power"
-    #icon: mdi:power
-    accuracy_decimals: 2
-    update_interval: 5s  
-    lambda: |-
-      if ((id(hotwater_demand).state) and (id(pc_moc).state >= 200.00)) {
-        return id(moc_cieplna).state / id(pc_moc).state;
-      } else {
-        return 0.00;
-      }
+  -
  
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
