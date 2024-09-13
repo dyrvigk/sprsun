@@ -7884,6 +7884,7 @@ number:
       mode: box
       entity_category: config
       skip_updates: 10
+      
  climate:
     - platform: nilan
       name: Nilan
