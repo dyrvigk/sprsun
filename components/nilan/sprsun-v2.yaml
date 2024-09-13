@@ -420,13 +420,8 @@ text_sensor:
  
 
   
-time:
-  - platform: sntp
-    id: my_time
-############################################################
+
 sensor:
- 
- 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Temperatura powrotu
