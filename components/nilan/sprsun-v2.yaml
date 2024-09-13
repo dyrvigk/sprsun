@@ -425,16 +425,6 @@ time:
     id: my_time
 ############################################################
 sensor:
-  - name: "Liczba włączeń sprężarki" # From gloabl variable. To HA
-    id: number_of_compressor_starts
-    platform: template
-    #unit_of_measurement: "litres"
-    accuracy_decimals: 0
-    lambda: 'return id(number_compressor_starts);'
-    update_interval: 60s
- 
- 
-############################################
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     id: parameter_marker_definition_raw
