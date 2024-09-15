@@ -497,7 +497,7 @@ sensor:
       return id(delta).state * id(flow_rate).state * 4.1899 * 975 / 3600;
    #przepływ: 1100-1440 
  
-  -
+  
  
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
