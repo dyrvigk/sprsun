@@ -430,36 +430,9 @@ text_sensor:
  
  
 climate:
-  - platform: bang_bang
-    name: "Termostat CO"
-    id: termostat_co
-    sensor: temp_co_dallas
-    default_target_temperature_low: 30 °C
-    default_target_temperature_high: 35 °C
-    visual:
-      min_temperature: 10
-      max_temperature: 55
-      temperature_step: 1.0
-    heat_action:
-      - switch.turn_on: relay_grzalka_co
-    idle_action:
-      - switch.turn_off: relay_grzalka_co
  
-  - platform: bang_bang
-    name: "Termostat CWU"
-    id: termostat_cwu
-    sensor: temp_cwu_dallas
-    default_target_temperature_low: 50 °C
-    default_target_temperature_high: 55 °C
-    visual:
-      min_temperature: 10
-      max_temperature: 80
-      temperature_step: 1.0
-    heat_action:
-      - switch.turn_on: relay_grzalka_cwu
-    idle_action:
-      - switch.turn_off: relay_grzalka_cwu
  
+  
 time:
   - platform: sntp
     id: my_time
