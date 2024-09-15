@@ -6,8 +6,7 @@ external_components:
 
 nilan:
 
-
-
+ 
 globals:
   - id: number_compressor_starts
     type: int
@@ -99,7 +98,19 @@ text_sensor:
     name: "Pompa CO status"
     icon: mdi:thermostat
  
-
+  - platform: template
+    name: ${friendly_name} Uptime 
+    lambda: |-
+      int seconds = (id(uptime_sec).state);
+      int days = seconds / (24 * 3600);
+      seconds = seconds % (24 * 3600); 
+      int hours = seconds / 3600;
+      seconds = seconds % 3600;
+      int minutes = seconds /  60;
+      seconds = seconds % 60;
+      return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m "+ String(seconds) +"s").c_str() };
+    icon: mdi:clock-start
+    update_interval: 120s
     
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
@@ -418,10 +429,397 @@ text_sensor:
        return {z};
  
  
-
-  
-
+climate:
+  - platform: bang_bang
+    name: "Termostat CO"
+    id: termostat_co
+    sensor: temp_co_dallas
+    default_target_temperature_low: 30 °C
+    default_target_temperature_high: 35 °C
+    visual:
+      min_temperature: 10
+      max_temperature: 55
+      temperature_step: 1.0
+    heat_action:
+      - switch.turn_on: relay_grzalka_co
+    idle_action:
+      - switch.turn_off: relay_grzalka_co
+ 
+  - platform: bang_bang
+    name: "Termostat CWU"
+    id: termostat_cwu
+    sensor: temp_cwu_dallas
+    default_target_temperature_low: 50 °C
+    default_target_temperature_high: 55 °C
+    visual:
+      min_temperature: 10
+      max_temperature: 80
+      temperature_step: 1.0
+    heat_action:
+      - switch.turn_on: relay_grzalka_cwu
+    idle_action:
+      - switch.turn_off: relay_grzalka_cwu
+ 
+time:
+  - platform: sntp
+    id: my_time
+############################################################
 sensor:
+  - name: "Liczba włączeń sprężarki" # From gloabl variable. To HA
+    id: number_of_compressor_starts
+    platform: template
+    #unit_of_measurement: "litres"
+    accuracy_decimals: 0
+    lambda: 'return id(number_compressor_starts);'
+    update_interval: 60s
+ 
+ 
+############################################
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    id: parameter_marker_definition_raw
+    register_type: holding
+    address: 0x0032
+    value_type: U_WORD
+ 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    id: control_mark_1_raw
+    register_type: holding
+    address: 0x0033
+    value_type: U_WORD
+ 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    id: control_mark_2_raw
+    register_type: holding
+    address: 0x0034
+    value_type: U_WORD
+ 
+  - platform: modbus_controller
+    modbus_controller_id: sprsun_pc
+    id: timeband_raw
+    register_type: holding
+    address: 0x0035
+    value_type: U_WORD
+ 
+#########################################################################
+###########  Status pompy obiegowej
+  - platform: duty_cycle
+    pin:
+      number: 33
+      mode: INPUT_PULLUP
+    id: pump1_power
+    name: Pompa obiegowa CO pobór
+    update_interval: 5s
+    accuracy_decimals: 0
+    device_class: "power"
+    unit_of_measurement: 'W'
+    filters:
+      - lambda: |-
+          return x == 100.0 ? 0.0 : x;
+    on_value:
+      - lambda: |-
+          ESP_LOGD("pompa_co", "state=%f", id(pump1_power).state);
+          if (id(pump1_power).state == 0) {
+            id(pump1_status).publish_state("Wyłączona");
+          }
+          else if (id(pump1_power).state > 74 && id(pump1_power).state < 76) {
+            id(pump1_status).publish_state("Ostrzeżenie");
+          }
+          else if (id(pump1_power).state > 84 && id(pump1_power).state < 86) {
+            id(pump1_status).publish_state("Zatrzymanie alarmowe, awaria elektryczna");
+          }
+          else if (id(pump1_power).state > 89 && id(pump1_power).state < 91) {
+            id(pump1_status).publish_state("Zatrzymanie alarmowe, blokada");
+          }
+          else if (id(pump1_power).state > 94 && id(pump1_power).state < 96) {
+            id(pump1_status).publish_state("Tryb gotowości przez sygnał PWM (STOP)");
+          }
+          else if (id(pump1_power).state >= 100) {
+            id(pump1_status).publish_state("Wyłączona");
+            id(pump1_power).publish_state(0);
+          }
+ #         else {
+ #           if (id(fan_pump1_state)) { id(pump1_status).publish_state("PWM"); }
+ #           else { id(pump1_status).publish_state("Ręczny"); }
+ #         }
+ 
+ 
+##########################################################################
+  - platform: duty_time
+    name: "Czas pracy grzanie CO"
+    id: work_time_heating
+    sensor: heating_demand
+    # ... EOR 'lambda'
+   # lambda: "return id(my_climate).mode != CLIMATE_MODE_OFF;"
+    # Restore (optional, default: False)
+    restore: false
+    last_time:
+      name: Last time grzanie CO 
+ 
+  - platform: duty_time
+    name: "Czas pracy grzanie CWU"
+    id: work_time_hot_water
+    sensor: hotwater_demand
+    # ... EOR 'lambda'
+    #lambda: "return id(my_climate).mode != CLIMATE_MODE_OFF;"
+    # Restore (optional, default: False)
+    restore: false
+    last_time:
+      name: Last time grzanie CWU
+ 
+  - platform: duty_time
+    name: "Czas pracy sprężarki"
+    id: work_time
+    sensor: compressor_demand
+    # ... EOR 'lambda'
+    #lambda: "return id(my_climate).mode != CLIMATE_MODE_OFF;"
+    # Restore (optional, default: False)
+    restore: false
+    last_time:
+      name: Last time grzanie
+ 
+ 
+############   PZEM-004T V3 Pompa
+  - platform: pzemac
+    modbus_id: mod_bus_pzem
+    address: 1
+    current:
+      name: "PC prąd"
+      accuracy_decimals: 2 
+      id: pc_prad
+    voltage:
+      name: "PC napięcie"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: pc_napiecie
+    energy:
+      name: "PC zużycie energii"
+      filters:
+        # Wh to kWh is 0.001
+        - multiply: 0.001
+      unit_of_measurement: kWh
+      accuracy_decimals: 3
+      id: pc_energia
+    power:
+      name: "PC moc"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: pc_moc
+    frequency:
+      name: "PC częstotliwość"
+      unit_of_measurement: Hz
+      accuracy_decimals: 2
+    power_factor:
+      name: "PC współczynnik mocy"
+      accuracy_decimals: 2
+      id: pc_power_factor
+    update_interval: 5s
+ 
+  - platform: total_daily_energy
+    name: "PC dzienne zużycie energii"
+    power_id: pc_moc
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    id: pc_daily_kwh
+    icon: mdi:counter
+    device_class: energy
+ 
+#######  PC zużycie energii grzanie CO
+  - platform: template
+    name: "PC moc grzanie CO"
+    id: pc_moc_grzanie_co
+    device_class: power
+    state_class: measurement
+    unit_of_measurement: W
+    accuracy_decimals: 2
+    lambda: |-
+      if (id(heating_demand).state) {
+        return id(pc_moc).state;
+      } else {
+        return 0;
+      }
+    update_interval: 5s
+ 
+  - platform: total_daily_energy
+    name: "PC dzienne zużycie energii CO"
+    power_id: pc_moc_grzanie_co
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    id: pc_daily_co_kwh
+    icon: mdi:counter
+    device_class: energy
+ 
+#######  PC zużycie energii grzanie CWU
+  - platform: template
+    name: "PC moc grzanie CWU"
+    id: pc_moc_grzanie_cwu
+    device_class: power
+    state_class: measurement
+    unit_of_measurement: W
+    accuracy_decimals: 2
+    lambda: |-
+      if (id(hotwater_demand).state) {
+        return id(pc_moc).state;
+      } else {
+        return 0;
+      }
+    update_interval: 5s
+ 
+  - platform: total_daily_energy
+    name: "PC dzienne zużycie energii CWU"
+    power_id: pc_moc_grzanie_cwu
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    id: pc_daily_cwu_kwh
+    icon: mdi:counter
+    device_class: energy
+ 
+ 
+ 
+############   PZEM-004T V3 grzałka CO
+  - platform: pzemac
+    modbus_id: mod_bus_pzem
+    address: 2
+    current:
+      name: "Grzałka CO prąd"
+      accuracy_decimals: 2 
+      id: grzalka_co_prad
+    voltage:
+      name: "Grzałka CO napięcie"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: grzalka_co_napiecie
+    energy:
+      name: "Grzałka CO zużycie energii"
+      filters:
+        # Wh to kWh is 0.001
+        - multiply: 0.001
+      unit_of_measurement: kWh
+      accuracy_decimals: 3
+      id: grzalka_co_energia
+    power:
+      name: "Grzałka CO moc"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: grzalka_co_moc
+    frequency:
+      name: "Grzałka CO częstotliwość"
+      unit_of_measurement: Hz
+      accuracy_decimals: 2
+    power_factor:
+      name: "Grzałka CO współczynnik mocy"
+      accuracy_decimals: 2
+      id: grzalka_co_power_factor
+    update_interval: 5s
+ 
+  - platform: total_daily_energy
+    name: "Grzałka CO dzienne zużycie energii"
+    power_id: grzalka_co_moc
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    id: grzalka_co_daily_kwh
+    icon: mdi:counter
+    device_class: energy
+ 
+############   PZEM-004T V3 grzałka CWU
+  - platform: pzemac
+    modbus_id: mod_bus_pzem
+    address: 3
+    current:
+      name: "Grzałka CWU prąd"
+      accuracy_decimals: 2 
+      id: grzalka_cwu_prad
+    voltage:
+      name: "Grzałka CWU napięcie"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: grzalka_cwu_napiecie
+    energy:
+      name: "Grzałka CWU zużycie energii"
+      filters:
+        # Wh to kWh is 0.001
+        - multiply: 0.001
+      unit_of_measurement: kWh
+      accuracy_decimals: 3
+      id: grzalka_cwu_energia
+    power:
+      name: "Grzałka CWU moc"
+      unit_of_measurement: W
+      accuracy_decimals: 2
+      id: grzalka_cwu_moc
+    frequency:
+      name: "Grzałka CWU częstotliwość"
+      unit_of_measurement: Hz
+      accuracy_decimals: 2
+    power_factor:
+      name: "Grzałka CWU współczynnik mocy"
+      accuracy_decimals: 2
+      id: grzalka_cwu_power_factor
+    update_interval: 5s
+ 
+  - platform: total_daily_energy
+    name: "Grzałka CWU dzienne zużycie energii"
+    power_id: grzalka_cwu_moc
+    unit_of_measurement: "kWh"
+    accuracy_decimals: 3
+    id: grzalka_cwu_daily_kwh
+    icon: mdi:counter
+    device_class: energy
+ 
+###########################################################################
+  - platform: dallas
+    address: 0x1c0000031edd2a28
+    name: "Temperatura CO Dallas"
+    id: temp_co_dallas
+ 
+  - platform: dallas
+    address: 0x1c0000031edd2a29
+    name: "Temperatura CWU Dallas"
+    id: temp_cwu_dallas
+ 
+  - platform: pulse_meter
+    pin: GPIO13
+    id: flow_rate
+    name: "Przepływomierz PC"
+    unit_of_measurement: "L/hr"
+    #icon: "${ha_icon}"
+    timeout: 1s
+    accuracy_decimals: 3
+    filters:
+      - lambda: return (x / 27.0) * 60.0; #F(Hz)=(0,45*Q)
+    total:
+      name: "Wodomierz PC"
+      id: total_water_pc
+      unit_of_measurement: "m³"
+      device_class: water
+      state_class: total_increasing
+      accuracy_decimals: 3
+      #icon: "${ha_icon}"
+      filters:
+        - lambda: return (x / 27000.0);
+ 
+  - platform: wifi_signal
+    name: ${friendly_name} RSSI
+    update_interval: 60s
+  
+  - platform: uptime
+    id: uptime_sec
+ 
+#   - platform: modbus_controller
+#     modbus_controller_id: sprsun_pc
+#     name: ${friendly_name} Czas pracy
+#     id: work_time
+#     register_type: holding
+#     address: 0x0001 
+#     unit_of_measurement: "h"
+#     #device_class: "temperature"
+#     value_type: U_WORD
+#     filters:
+#       - lambda: return x * 1;
+#     accuracy_decimals: 0
+ 
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Temperatura powrotu
@@ -485,9 +883,58 @@ sensor:
     lambda: |-
       return id(outlet_temp).state - id(inlet_temp).state;
  
-  
+  - platform: template
+    name: ${friendly_name} moc cieplna 
+    id: moc_cieplna
+    unit_of_measurement: "W"
+    device_class: "power"
+    #icon: mdi:power
+    accuracy_decimals: 2
+    update_interval: 5s 
+    lambda: |-
+      return id(delta).state * id(flow_rate).state * 4.1899 * 975 / 3600;
+   #przepływ: 1100-1440 
  
-  
+  - platform: template
+    name: ${friendly_name} Współczynnik COP
+    id: cop
+    #unit_of_measurement: "W"
+    #device_class: "power"
+    #icon: mdi:power
+    accuracy_decimals: 2
+    update_interval: 5s  
+    lambda: |-
+      return id(moc_cieplna).state / id(pc_moc).state;
+ 
+  - platform: template
+    name: ${friendly_name} Współczynnik COP dla CO
+    id: cop_co
+    #unit_of_measurement: "W"
+    #device_class: "power"
+    #icon: mdi:power
+    accuracy_decimals: 2
+    update_interval: 5s  
+    lambda: |-
+      if ((id(heating_demand).state) and (id(pc_moc).state >= 200.00)) {
+        return id(moc_cieplna).state / id(pc_moc).state;
+      } else {
+        return 0.00;
+      }
+ 
+  - platform: template
+    name: ${friendly_name} Współczynnik COP dla CWU
+    id: cop_cwu
+    #unit_of_measurement: "W"
+    #device_class: "power"
+    #icon: mdi:power
+    accuracy_decimals: 2
+    update_interval: 5s  
+    lambda: |-
+      if ((id(hotwater_demand).state) and (id(pc_moc).state >= 200.00)) {
+        return id(moc_cieplna).state / id(pc_moc).state;
+      } else {
+        return 0.00;
+      }
  
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
@@ -1641,7 +2088,2056 @@ number:
       mode: box
       entity_category: config
  
-   
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A01 MV preiod
+    #   address: 0x003E
+    #   skip_updates: 10      
+    #   unit_of_measurement: "S"
+    #   id: a01_mv_preiod
+    #   value_type: U_WORD
+    #   min_value: 20
+    #   max_value: 90
+    #   #lambda: "return x / 5.0;"
+    #   #write_lambda: "return x * 5.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A14 MV heat initial 0
+    #   address: 0x003F
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a14_mv_heat_initial_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A15 MV heat initial 1
+    #   address: 0x0040
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a15_mv_heat_initial_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A16 MV heat initial 2
+    #   address: 0x0041
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a16_mv_heat_initial_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A17 MV heat initial 3
+    #   address: 0x0042
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a17_mv_heat_initial_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A18 MV heat initial 4
+    #   address: 0x0043
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a18_mv_heat_initial_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A19 MV heat initial 5
+    #   address: 0x0044
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a19_mv_heat_initial_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A20 MV heat initial 6
+    #   address: 0x0045
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a20_mv_heat_initial_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A21 MV heat initial 7
+    #   address: 0x0046
+    #   skip_updates: 10     
+    #   #unit_of_measurement: "S"
+    #   id: a21_mv_heat_initial_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A22 MV cool initial 0
+    #   address: 0x0047
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a22_mv_cool_initial_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A23 MV cool initial 1
+    #   address: 0x0048
+    #   skip_updates: 10     
+    #   #unit_of_measurement: "S"
+    #   id: a23_mv_cool_initial_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A24 MV cool initial 2
+    #   address: 0x0049
+    #   skip_updates: 10
+    #  #unit_of_measurement: "S"
+    #   id: a24_mv_cool_initial_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A25 MV cool initial 3
+    #   address: 0x004A
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a25_mv_cool_initial_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A26 MV water initial 0
+    #   address: 0x004B
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a26_mv_water_initial_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A27 MV water initial 1
+    #   address: 0x004C
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a27_mv_water_initial_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A28 MV water initial 2
+    #   address: 0x004D
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a28_mv_water_initial_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A29 MV water initial 3
+    #   address: 0x004E
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a29_mv_water_initial_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A30 MV water initial 4
+    #   address: 0x004F
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a30_mv_water_initial_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A31 MV water initial 5
+    #   address: 0x0050
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a31_mv_water_initial_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A32 MV water initial 6
+    #   address: 0x0051
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a32_mv_water_initial_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A33 MV water initial 7
+    #   address: 0x0052
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a33_mv_water_initial_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 0
+    #   address: 0x0053
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A35 MV heat lower 1
+    #   address: 0x0054
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a35_mv_heat_lower_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 2
+    #   address: 0x0055
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 3
+    #   address: 0x0056
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 4
+    #   address: 0x0057
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 5
+    #   address: 0x0058
+    #   skip_updates: 10     
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 6
+    #   address: 0x0059
+    #   skip_updates: 10 
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A34 MV heat lower 7
+    #   address: 0x005A
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: a34_mv_heat_lower_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A43 MV defrost open
+    #   address: 0x005B
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: a43_mv_defrost_open
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A44 MV water lower
+    #   address: 0x005C
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: a44_mv_water_lower
+    #   value_type: U_WORD
+    #   min_value: 25
+    #   max_value: 75 
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A46 MV manual open
+    #   address: 0x005D
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: a46_mv_manual_open
+    #   value_type: U_WORD
+    #   min_value: 10
+    #   max_value: 225 
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A47 MV SH ratio
+    #   address: 0x005E
+    #   skip_updates: 10      
+    #   #unit_of_measurement: "S"
+    #   id: a47_mv_sh_ratio
+    #   value_type: U_WORD
+    #   min_value: 1
+    #   max_value: 6
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A48 MV SH diff.
+    #   address: 0x005F
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: a48_mv_sh_diff
+    #   value_type: U_WORD
+    #   min_value: 1
+    #   max_value: 180
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A50 MV comp keep time
+    #   address: 0x0060
+    #   skip_updates: 10      
+    #   unit_of_measurement: "S"
+    #   id: a50_mv_comp_keep_time
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 250
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} A51 MV defrost keep time
+    #   address: 0x0061
+    #   skip_updates: 10       
+    #   unit_of_measurement: "S"
+    #   id: a51_mv_defrost_keep_time
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 250
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B02 AV manual open
+    #   address: 0x0062
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b02_av_manual_open
+    #   value_type: U_WORD
+    #   min_value: 10
+    #   max_value: 225
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B04 AV exhaust ratio
+    #   address: 0x0063
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b04_av_exhaust_ratio
+    #   value_type: U_WORD
+    #   min_value: 1
+    #   max_value: 6
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   skip_updates: 10       
+    #   name: ${friendly_name} B05 AV exhaust diff
+    #   address: 0x0064
+    #   #unit_of_measurement: "S"
+    #   id: b05_av_exhaust_diff
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 180
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B06 AV SH ratio
+    #   address: 0x0065
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b06_av_sh_ratio
+    #   value_type: U_WORD
+    #   min_value: 1
+    #   max_value: 6
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B07 AV SH diff
+    #   address: 0x0066
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b07_av_sh_diff
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 180
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B08 AV period
+    #   address: 0x0067
+    #   skip_updates: 10       
+    #   unit_of_measurement: "S"
+    #   id: b08_av_period
+    #   value_type: U_WORD
+    #   min_value: 10
+    #   max_value: 20
+    #   #lambda: "return x / 2.0;"
+    #   #write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B19 AV heat initial 0 (Outlet temp <= B93)
+    #   address: 0x0068
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b19_av_heat_initial_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B20 AV heat initial 1
+    #   address: 0x0069
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b20_av_heat_initial_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B27 AV water initial 0 (Outlet temp<=B93)
+    #   address: 0x0070
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b27_av_water_initial_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B28 AV water initial 1
+    #   address: 0x0071
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b28_water_initial_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B35 AV heat lower 0
+    #   address: 0x0078
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b35_av_heat_lower_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B36 AV heat lower 1
+    #   address: 0x0079
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b36_av_heat_lower_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B37 AV heat lower 2
+    #   address: 0x007A
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b37_av_heat_lower_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B38 AV heat lower 3
+    #   address: 0x007B
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b38_av_heat_lower_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B39 AV heat lower 4
+    #   address: 0x007C
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b39_av_heat_lower_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B40 AV heat lower 5
+    #   address: 0x007D
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b40_av_heat_lower_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B41 AV heat lower 6
+    #   address: 0x007E
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b41_av_heat_lower_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B42 AV heat lower 7
+    #   address: 0x007F
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b42_av_heat_lower_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B43 AV defrost open
+    #   address: 0x0080
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b43_av_defrost_open
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B44 AV cool open
+    #   address: 0x0081
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "S"
+    #   id: b44_av_cool_open
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} F02 HP protect value
+    #   address: 0x0082
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   id: f02_hp_protect_value
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 250
+    #   lambda: "return (x + 250) * 0.1;"
+    #   write_lambda: "return (x - 250) / 0.1;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} F03 HP recover value
+    #   address: 0x0083
+    #   skip_updates: 10      
+    #   unit_of_measurement: "bar"
+    #   id: f03_hp_recover_value
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 250
+    #   lambda: "return (x + 250) * 0.1;"
+    #   write_lambda: "return (x - 250) / 0.1;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} F04 LP protect value
+    #   address: 0x0084
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   id: f04_lp_protect_value
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 200
+    #   lambda: "return x * 0.1;"
+    #   write_lambda: "return x / 0.1;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} F05 LP recover value
+    #   address: 0x0085
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   id: f05_lp_recover_value
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 200
+    #   lambda: "return x * 0.1;"
+    #   write_lambda: "return x / 0.1;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D03 Cool dcfan max speed
+    #   address: 0x0086
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d03_cool_dcfan_max_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D04 Cool dcfan min speed
+    #   address: 0x0087
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d04_cool_dcfan_min_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D05 Cool dcfan high press
+    #   address: 0x0088
+    #   skip_updates: 10       
+    #   #Sunit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d05_cool_dcfan_high_press
+    #   value_type: U_WORD
+    #   min_value: 10
+    #   max_value: 40
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D06 Cool dcfan open diff
+    #   address: 0x0089
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d06_cool_dcfan_open_diff
+    #   value_type: U_WORD
+    #   min_value: 2
+    #   max_value: 10
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D07 Cool dcfan close diff
+    #   address: 0x008A
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d07_cool_dcfan_close_diff
+    #   value_type: U_WORD
+    #   min_value: 2
+    #   max_value: 10
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D08 Cool dcfan init speed
+    #   address: 0x008B
+    #   skip_updates: 10      
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d08_cool_dcfan_init_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D09 Heat dcfan max speed
+    #   address: 0x008C
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d09_heat_dcfan_max_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D10 Heat dcfan min speed
+    #   address: 0x008D
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d10_heat_dcfan_min_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D11 Heat dcfan low press
+    #   address: 0x008E
+    #   skip_updates: 10      
+    #   unit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d11_heat_dcfan_low_press
+    #   value_type: U_WORD
+    #   min_value: 5
+    #   max_value: 15
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D12 Heat dcfan open diff
+    #   address: 0x008F
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d12_heat_dcfan_open_diff
+    #   value_type: U_WORD
+    #   min_value: 2
+    #   max_value: 10
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D13 Heat dcfan close diff
+    #   address: 0x0090
+    #   skip_updates: 10       
+    #   unit_of_measurement: "bar"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d13_heat_dcfan_close_diff
+    #   value_type: U_WORD
+    #   min_value: 2
+    #   max_value: 10
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D14 Heat dcfan init speed
+    #   address: 0x0091
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d14_heat_dcfan_init_speed
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   lambda: "return x / 10.0;"
+    #   write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D15 DCfan adjust period
+    #   address: 0x0092
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d15_dcfan_adjust_period
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 30
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D16 DCfan adjust speed 1 (Speed difference >=200)
+    #   address: 0x0093
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d16_dcfun_adjust_speed_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D17 DCfan adjust speed 2 (200>Speed difference>100)
+    #   address: 0x0094
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d17_dcfun_adjust_speed_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D18 DCfan adjust speed 3 (100>Speed difference>50)
+    #   address: 0x0095
+    #   skip_updates: 10      
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d18_dcfun_adjust_speed_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D19 DCfan adjust speed 4 (50>Speed difference>20)
+    #   address: 0x0096
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d19_dcfun_adjust_speed_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} D20 DCfan adjust speed 5 (20>Speed difference>5)
+    #   address: 0x0097
+    #   skip_updates: 10       
+    #   unit_of_measurement: "RPM"
+    #   icon: "mdi:fan-speed-1"
+    #   id: d20_dcfun_adjust_speed_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 100
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B45 AV water lower 0
+    #   address: 0x0098
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b45_av_water_lower_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B46 AV water lower 1
+    #   address: 0x0099
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b46_av_water_lower_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B47 AV water lower 2
+    #   address: 0x009A
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b47_av_water_lower_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B48 AV water lower 3
+    #   address: 0x009B
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b48_av_water_lower_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B49 AV water lower 4
+    #   address: 0x009C
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b49_av_water_lower_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B50 AV water lower 5
+    #   address: 0x009D
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b50_av_water_lower_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B51 AV water lower 6
+    #   address: 0x009E
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b51_av_water_lower_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B52 AV water lower 7
+    #   address: 0x009F
+    #   skip_updates: 10       
+    #   #unit_of_measurement: "RPM"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b52_av_water_lower_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 240
+    #   lambda: "return x / 2.0;"
+    #   write_lambda: "return x * 2.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B53 AV heat exhaust 0 (T >= 14 *C)
+    #   address: 0x00A0
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b53_av_heat_exhaust_0
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B54 AV heat exhaust 1 [9, 14 *C)
+    #   address: 0x00A1
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b54_av_heat_exhaust_1
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B55 AV heat exhaust 2 [4, 9 *C)
+    #   address: 0x00A2
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b55_av_heat_exhaust_2
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B56 AV heat exhaust 3 [-5, 4 *C)
+    #   address: 0x00A3
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b56_av_heat_exhaust_3
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B57 AV heat exhaust 4 [-10, -5 *C)
+    #   address: 0x00A4
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b57_av_heat_exhaust_4
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B58 AV heat exhaust 5 [-16, -10 *C)
+    #   address: 0x00A5
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b58_av_heat_exhaust_5
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B59 AV heat exhaust 6 [-23, -16 *C)
+    #   address: 0x00A6
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b59_av_heat_exhaust_6
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B60 AV heat exhaust 7 (T < -23 *C)
+    #   address: 0x00A7
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b60_av_heat_exhaust_7
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B61 AV water exhaust 0 (T >= 14 *C)
+    #   address: 0x00A8
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b61_av_water_exhaust_0
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B62 AV water exhaust 1 [9, 14 *C)
+    #   address: 0x00A9
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b62_av_water_exhaust_1
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B63 AV water exhaust 2 [4, 9 *C)
+    #   address: 0x00AA
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b62_av_water_exhaust_2
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B64 AV water exhaust 3 [-5, 4 *C)
+    #   address: 0x00AB
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b64_av_water_exhaust_3
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B65 AV water exhaust 4 [-10, -5 *C)
+    #   address: 0x00AC
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b65_av_water_exhaust_4
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B66 AV water exhaust 5 [-16, -10 *C)
+    #   address: 0x00AD
+    #   skip_updates: 10       
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b66_av_water_exhaust_5
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B67 AV water exhaust 6 [-23, -16 *C)
+    #   address: 0x00AE  
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b67_av_water_exhaust_6
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10 
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B68 AV water exhaust 7 (T < -23 *C)
+    #   address: 0x00AF
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b68_av_water_exhaust_7
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B69 AV cool exhaust 0 (T >= 38 *C)
+    #   address: 0x00B0
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b69_av_cool_exhaust_0
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B70 AV cool exhaust 1 [30, 38 *C)
+    #   address: 0x00B1
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b70_av_cool_exhaust_1
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B71 AV cool exhaust 2 [25, 30 *C)
+    #   address: 0x00B2
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b71_av_cool_exhaust_2
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B72 AV cool exhaust 3 (T < 25 *C)
+    #   address: 0x00B3
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b72_av_cool_exhaust_3
+    #   value_type: U_WORD
+    #   min_value: 50
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config 
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B73 AV open delay
+    #   address: 0x00B4
+    #   unit_of_measurement: "S"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b74_av_open_delay
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 180
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B75 AV off exh diff
+    #   address: 0x00B5
+    #   #unit_of_measurement: "S"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b75_av_off_exh_diff
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 30
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B76 AV heat exh diff 0  (T >= 14 *C)
+    #   address: 0x00B6
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b76_av_heat_exh_diff_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B77 AV heat exh diff 1 [9, 14 *C)
+    #   address: 0x00B7
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b77_av_heat_exh_diff_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B78 AV heat exh diff 2 [4, 9 *C)
+    #   address: 0x00B8
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b78_av_heat_exh_diff_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B79 AV heat exh diff 3 [-5, 4 *C)
+    #   address: 0x00B9
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b79_av_heat_exh_diff_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B80 AV heat exh diff 4 [-10, -5 *C)
+    #   address: 0x00BA
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b80_av_heat_exh_diff_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B81 AV heat exh diff 5 [-16, -10 *C)
+    #   address: 0x00BB
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b81_av_heat_exh_diff_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B82 AV heat exh diff 6 [-23, -16 *C)
+    #   address: 0x00BC
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b82_av_heat_exh_diff_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B83 AV heat exh diff 7 (T < -23 *C)
+    #   address: 0x00BD
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b83_av_heat_exh_diff_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B84 AV water exh diff 0  (T >= 14 *C)
+    #   address: 0x00BE
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b84_av_water_exh_diff_0
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B85 AV water exh diff 1 [9, 14 *C)
+    #   address: 0x00BF
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b85_av_water_exh_diff_1
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B86 AV water exh diff 2 [4, 9 *C)
+    #   address: 0x00C0
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b86_av_water_exh_diff_2
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B87 AV water exh diff 3 [-5, 4 *C)
+    #   address: 0x00C1
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b87_av_water_exh_diff_3
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B88 AV water exh diff 4 [-10, -5 *C)
+    #   address: 0x00C2
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b88_av_water_exh_diff_4
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B89 AV water exh diff 5 [-16, -10 *C)
+    #   address: 0x00C3
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b89_av_water_exh_diff_5
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B90 AV water exh diff 6 [-23, -16 *C)
+    #   address: 0x00C4
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b90_av_water_exh_diff_6
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+    # - platform: modbus_controller
+    #   modbus_controller_id: sprsun_pc
+    #   name: ${friendly_name} B91 AV water exh diff 7 (T < -23 *C)
+    #   address: 0x00C5
+    #   unit_of_measurement: "°C"
+    #   #icon: "mdi:fan-speed-1"
+    #   id: b91_av_water_exh_diff_7
+    #   value_type: U_WORD
+    #   min_value: 0
+    #   max_value: 125
+    #   #lambda: "return x / 10.0;"
+    #   #write_lambda: "return x * 10.0;"
+    #   step: 1
+    #   mode: box
+    #   entity_category: config
+    #   skip_updates: 10
+ 
+#########################################################
+###   STOP DELTA TEMP GRZANIE: 4, DELTA TEMP GRZANIE (HISTEREZA): 5 (CZASAMI 6-7)
+ 
     - platform: modbus_controller
       modbus_controller_id: sprsun_pc
       name: ${friendly_name} P03 Histereza CO
@@ -5628,5 +8124,3 @@ number:
       mode: box
       entity_category: config
       skip_updates: 10
-      
- 
