@@ -800,9 +800,7 @@ sensor:
       filters:
         - lambda: return (x / 27000.0);
  
-  - platform: wifi_signal
-    name: ${friendly_name} RSSI
-    update_interval: 60s
+ 
   
   - platform: uptime
     id: uptime_sec
