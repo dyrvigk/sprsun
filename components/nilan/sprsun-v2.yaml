@@ -485,17 +485,7 @@ sensor:
     lambda: |-
       return id(outlet_temp).state - id(inlet_temp).state;
  
-  - platform: template
-    name: ${friendly_name} moc cieplna 
-    id: moc_cieplna
-    unit_of_measurement: "W"
-    device_class: "power"
-    #icon: mdi:power
-    accuracy_decimals: 2
-    update_interval: 5s 
-    lambda: |-
-      return id(delta).state * id(flow_rate).state * 4.1899 * 975 / 3600;
-   #przepływ: 1100-1440 
+  
  
   
  
