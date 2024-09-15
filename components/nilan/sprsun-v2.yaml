@@ -769,12 +769,12 @@ sensor:
     device_class: energy
  
 ###########################################################################
-  - platform: dallas
+  - platform: dallas_temp
     address: 0x1c0000031edd2a28
     name: "Temperatura CO Dallas"
     id: temp_co_dallas
  
-  - platform: dallas
+  - platform: dallas_temp
     address: 0x1c0000031edd2a29
     name: "Temperatura CWU Dallas"
     id: temp_cwu_dallas
