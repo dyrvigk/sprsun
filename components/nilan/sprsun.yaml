@@ -99,7 +99,7 @@ sensor:
     name: ${friendly_name} Fan 1
     id: dc_fan_1_speed
     register_type: holding
-    address: 0x0026
+    address: 199
     unit_of_measurement: "RPM"
     #device_class: "frequency"
     value_type: U_WORD
@@ -681,7 +681,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} hotwater_setpoint
-    address: 0x00CA
+    address: 004
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_hotwater_setpoint
@@ -732,7 +732,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Hot water hysteresis
-    address: 0x00C8
+    address: 005
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: hotwater_start_diff
