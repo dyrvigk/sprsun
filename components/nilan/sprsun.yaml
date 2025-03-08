@@ -27,7 +27,7 @@ sensor:
     name: ${friendly_name} HotWater Temp
     id: hotwater_temp
     register_type: holding
-    address: 0x000F
+    address: 195
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -40,7 +40,7 @@ sensor:
     name: ${friendly_name} Udendørs Temp
     id: ambi_temp
     register_type: holding
-    address: 0x0011
+    address: 190
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -53,7 +53,7 @@ sensor:
     name: ${friendly_name} Outlet Temp
     id: outlet_temp
     register_type: holding
-    address: 0x0012
+    address: 189
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -70,7 +70,7 @@ sensor:
     name: ${friendly_name} Suction Gas Temp
     id: suct_gas_temp
     register_type: holding
-    address: 0x0015
+    address: 192
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -83,7 +83,7 @@ sensor:
     name: ${friendly_name} Coil Temp
     id: coil_temp
     register_type: holding
-    address: 0x0016
+    address: 196
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -125,7 +125,7 @@ sensor:
     name: ${friendly_name} Evaporator Temp
     id: evap_temp
     register_type: holding
-    address: 0x0028
+    address: 206
     unit_of_measurement: "°C"
     device_class: "temperature"
     value_type: S_WORD
@@ -138,7 +138,7 @@ sensor:
     name: ${friendly_name} Suction Pressure
     id: suct_press
     register_type: holding
-    address: 0x002F
+    address: 194
     unit_of_measurement: "bar"
     device_class: "pressure"
     value_type: U_WORD
@@ -151,7 +151,7 @@ sensor:
     name: ${friendly_name} Discharge Pressure
     id: disch_press
     register_type: holding
-    address: 0x0030
+    address: 193
     unit_of_measurement: "bar"
     device_class: "pressure"
     value_type: U_WORD
@@ -164,7 +164,7 @@ sensor:
     name: ${friendly_name} Fan output
     id: fan_output
     register_type: holding
-    address: 0x0031
+    address: 197
     value_type: U_WORD
     filters:
       - multiply: 0.1
@@ -208,7 +208,7 @@ sensor:
     name: ${friendly_name} Actual speed
     id: actual_speed
     register_type: holding
-    address: 0x001E
+    address: 205
     value_type: U_WORD
     filters:
       - multiply: 0.1
@@ -220,7 +220,7 @@ sensor:
     name: ${friendly_name} Electronic expansion valve opening
     id: eev_opening
     register_type: holding
-    address: 0x001C
+    address: 207
     value_type: U_WORD
     filters:
       - multiply: 1.0
