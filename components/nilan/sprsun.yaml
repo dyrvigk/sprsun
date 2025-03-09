@@ -637,7 +637,7 @@ select:
     name: ${friendly_name} Work Mode
     #icon: "mdi:fan"
     id: p06_unit_mode
-    address: 0x0036
+    address: 000
     entity_category: config
     value_type: U_WORD
     optimistic: false
