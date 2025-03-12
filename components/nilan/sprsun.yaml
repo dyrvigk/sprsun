@@ -270,367 +270,8 @@ sensor:
       - multiply: 0.1
     accuracy_decimals: 1    
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Pobór
-    id: power_w
-    register_type: holding
-    address: 0x0017
-    unit_of_measurement: "W"
-    device_class: "power"
-    value_type: U_WORD
-    filters:
-      - lambda: return x * 1.0;
-    accuracy_decimals: 2  
-
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Controller Version
-    id: controller_version
-    register_type: holding
-    address: 0x002C
-    #unit_of_measurement: "Hz"
-    #device_class: "frequency"
-    value_type: U_WORD
-    filters:
-      - lambda: return x * 1.0;
-    accuracy_decimals: 0
-    skip_updates: 10
-
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Display Version
-    id: display_version
-    register_type: holding
-    address: 0x002D
-    #unit_of_measurement: "Hz"
-    #device_class: "frequency"
-    value_type: U_WORD
-    filters:
-      - lambda: return x * 1.0;
-    accuracy_decimals: 0
-    skip_updates: 10  
-
-  
     
-text_sensor:  
-    
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Switching input symbol
-    id: switching_input_symbol
-    register_type: holding
-    address: 0x0002
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "A/C Linkage switch, ";
-       if ((data[idx] & 0x0002) != 0) z += "Linkage switch, ";
-       if ((data[idx] & 0x0004) != 0) z += "Heating linkage, ";
-       if ((data[idx] & 0x0008) != 0) z += "Cooling linkage, ";
-       if ((data[idx] & 0x0010) != 0) z += "Flow Switch, ";
-       if ((data[idx] & 0x0020) != 0) z += "High pessure switch, ";
-       if ((data[idx] & 0x0040) != 0) z += "Phase sequence detection, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
  
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Working status mark
-    id: working_status_mark
-    register_type: holding
-    address: 0x0003
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Hot water demand, ";
-       if ((data[idx] & 0x0002) != 0) z += "Heating demand, ";
-       if ((data[idx] & 0x0004) != 0) z += "With or without heating, ";
-       if ((data[idx] & 0x0008) != 0) z += "With or without cooling, ";
-       if ((data[idx] & 0x0010) != 0) z += "Antilegionella on, ";
-       if ((data[idx] & 0x0020) != 0) z += "Cooling demand, ";
-       if ((data[idx] & 0x0040) != 0) z += "Alarm downtime, ";
-       if ((data[idx] & 0x0080) != 0) z += "Defrost, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Output symbol 1
-    id: output_symbol_1
-    register_type: holding
-    address: 0x0004
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Compressor, ";
-       if ((data[idx] & 0x0002) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Fan, ";
-       if ((data[idx] & 0x0040) != 0) z += "4-way valve, ";
-       if ((data[idx] & 0x0080) == 0) z += "Low fan speed, ";
-       if ((data[idx] & 0x0080) == 128) z += "High fan speed, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
- 
-       
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Output symbol 2
-    id: output_symbol_2
-    register_type: holding
-    address: 0x0005
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Chasis heater, ";
-       if ((data[idx] & 0x0002) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Heating heater, ";
-       if ((data[idx] & 0x0040) != 0) z += "Three-way valve, ";
-       if ((data[idx] & 0x0080) != 0) z += "Hotwater heater, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Output symbol 3
-    id: output_symbol_3
-    register_type: holding
-    address: 0x0006
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "A/C PUMP, ";
-       if ((data[idx] & 0x0002) != 0) z += "Crank heater, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Assistant solenoid valve, ";
-       if ((data[idx] & 0x0040) != 0) z += "Pump, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
-       
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 1
-    id: failure_symbol_1
-    register_type: holding
-    address: 0x0007
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Hotwater temp, ";
-       if ((data[idx] & 0x0002) != 0) z += "Ambi temp, ";
-       if ((data[idx] & 0x0004) != 0) z += "Coil temp, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Outlet temp, ";
-       if ((data[idx] & 0x0020) != 0) z += "High pressure sensor failure, ";
-       if ((data[idx] & 0x0040) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0080) != 0) z += "Phase sequence, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 2
-    id: failure_symbol_2
-    register_type: holding
-    address: 0x0008
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Water flow failure, ";
-       if ((data[idx] & 0x0002) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0004) != 0) z += "High protection of heating water outlet, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0040) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 3
-    id: failure_symbol_3
-    register_type: holding
-    address: 0x0009
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0002) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0040) != 0) z += "Outlet gas temp failure, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
-       
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 4
-    id: failure_symbol_4
-    register_type: holding
-    address: 0x000A
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Water inlet temp failure, ";
-       if ((data[idx] & 0x0002) != 0) z += "Exhaust temperature is too high, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Low protection of cooling water outlet, ";
-       if ((data[idx] & 0x0040) != 0) z += "Inlet gas temp failure, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
-       
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 5
-    id: failure_symbol_5
-    register_type: holding
-    address: 0x000B
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Low pressure protection, ";
-       if ((data[idx] & 0x0002) != 0) z += "High pressure protection, ";
-       if ((data[idx] & 0x0004) != 0) z += "Coil temperature is too high, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0020) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0040) != 0) z += "High pressure sensor failure, ";
-       if ((data[idx] & 0x0080) != 0) z += "Low pressure sensor failure, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 6
-    id: failure_symbol_6
-    register_type: holding
-    address: 0x000C
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0002) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Sec antifreeze, ";
-       if ((data[idx] & 0x0020) != 0) z += "One antifreeze, ";
-       if ((data[idx] & 0x0040) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
- 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} Failure symbol 7
-    id: failure_symbol_7
-    register_type: holding
-    address: 0x000D
-    response_size: 2
-    raw_encode: HEXBYTES
-    #bitmask: 0
-    lambda: |-
-       std::string z = "";
-       int idx = item->offset+1;
-       if ((data[idx] & 0x0001) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0002) != 0) z += "Ambient temperature is too low, ";
-       if ((data[idx] & 0x0004) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0008) != 0) z += "Invalid, ";
-       if ((data[idx] & 0x0010) != 0) z += "Frequency conversion module is faulty ";
-       if ((data[idx] & 0x0020) != 0) z += "2# DC fan failure, ";
-       if ((data[idx] & 0x0040) != 0) z += "1# DC fan failure, ";
-       if ((data[idx] & 0x0080) != 0) z += "Invalid, ";
-   
-       if(z.length() > 0){
-         z.pop_back();
-       }
-       return {z};
-      
 select:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
@@ -651,29 +292,7 @@ select:
 
   
 
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    name: ${friendly_name} F56 Model pompy ciepła
-    #icon: "mdi:fan"
-    id: f56_model_selection
-    address:  0x01BA
-    entity_category: config
-    value_type: U_WORD
-    optimistic: false
-    skip_updates: 10
-    optionsmap:
-      "A102508 - CGK025V3L-B 9.5 kW 220V": 1
-      "A202508 - CGK-025V3L-B 9.5 kW 380V": 2
-      "A103008 - CGK030V3L-B 12 kW 220V": 3
-      "A203008 - CGK-030V3L-B 12 kW 380V": 4
-      "A104008 - CGK040V3L-B 15 kW 220V": 5
-      "A204008 - CGK-040V3L-B 15 kW 380V": 6
-      "A105008 - CGK050V3L-B 20 kW 220V": 7
-      "A205008 - CGK-050V3L-B 20 kW 380V": 8
-      "A106008 - CGK060V3L-B 22 kW 220V": 9
-      "A206008 - CGK-060V3L-B 22 kW 380V": 10
-
-
+  
 
 
 number: 
@@ -681,7 +300,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} hotwater_setpoint
-    address: 004
+    address: 003
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_hotwater_setpoint
@@ -698,7 +317,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} heating_setpoint
-    address: 0x00CC
+    address: 001
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_heating_setpoint
@@ -715,7 +334,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} cooling_setpoint
-    address: 0x00CB
+    address: 002
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: p04_cooling_setpoint
@@ -732,7 +351,7 @@ number:
   - platform: modbus_controller
     modbus_controller_id: sprsun_pc
     name: ${friendly_name} Hot water hysteresis
-    address: 005
+    address: 004
     unit_of_measurement: "°C"
     #icon: "mdi:fan-speed-1"
     id: hotwater_start_diff
@@ -757,14 +376,7 @@ number:
     force_new_range: true
     use_write_multiple: true
 
-switch:
-  - platform: modbus_controller
-    modbus_controller_id: sprsun_pc
-    id: enable_eletric_meter
-    register_type: coil
-    address: 67
-    name: "enable eletric meter"
-    bitmask: 1
+
     
 
 climate:
